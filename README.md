@@ -1,4 +1,4 @@
-# Nemotron Console
+# Nemotron bro
 
 A minimal chatbot website that talks to NVIDIA's `nemotron-3-super-120b-a12b`
 model, with streaming responses (including the model's reasoning trace shown
