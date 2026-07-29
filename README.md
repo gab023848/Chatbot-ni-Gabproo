@@ -1,166 +1,60 @@
-# Chatbot-ni-Gabproo
-AI-powered chatbot built with NVIDIA Nemotron, designed to assist with coding, writing, research, and everyday productivity. Developed as a personal project focused on continuous improvement.
+# Nemotron Console
 
-# 🤖 Nemotron ni Gab
+A minimal chatbot website that talks to NVIDIA's `nemotron-3-super-120b-a12b`
+model, with streaming responses (including the model's reasoning trace shown
+separately from its answer).
 
-Nemotron ni Gab is a modern AI chatbot powered by NVIDIA Nemotron. It provides intelligent conversations, coding assistance, content writing, research support, and general question answering through a clean and responsive web interface.
+## Why a backend at all?
 
-This project was developed as a personal portfolio and learning project to explore AI integration using Flask and modern web technologies.
+Your API key must never live in browser-side code — anyone could open dev
+tools and steal it. This project uses a tiny Flask server as a proxy: the
+browser talks to your server, and only your server talks to NVIDIA, using a
+key that's kept in an environment variable.
 
----
+**Important:** the key you pasted earlier in chat is now public. Rotate it
+in the NVIDIA NGC / build.nvidia.com dashboard before using this, and never
+commit the new one to source control.
 
-## ✨ Features
-
-- 💬 Real-time AI conversations
-- 💻 Coding assistance and debugging
-- 📝 Writing and content generation
-- 📚 Summarization and explanations
-- ⚡ Streaming AI responses
-- 🌙 Clean and responsive user interface
-- 📱 Mobile-friendly design
-
----
-
-## 🛠️ Built With
-
-### Frontend
-- HTML5
-- CSS3
-- JavaScript
-
-### Backend
-- Python
-- Flask
-
-### AI
-- NVIDIA Nemotron
-
----
-
-## 🚀 Installation
-
-### 1. Clone the repository
+## Setup
 
 ```bash
-git clone https://github.com/yourusername/nvdiachatbot.git
-cd nvdiachatbot
-```
-
-### 2. Create a virtual environment
-
-```bash
-python -m venv .venv
-```
-
-### 3. Activate the virtual environment
-
-Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-Linux/macOS
-
-```bash
-source .venv/bin/activate
-```
-
-### 4. Install dependencies
-
-```bash
+cd chatbot
+python3 -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-### 5. Configure environment variables
-
-Create a `.env` file.
-
-```env
-NVIDIA_API_KEY=your_api_key_here
-```
-
-### 6. Run the application
-
-```bash
+export NVIDIA_API_KEY="nvapi-your-new-key-here"   # Windows: set NVIDIA_API_KEY=...
 python app.py
 ```
 
-Open your browser and visit:
+Then open http://localhost:5000 in your browser.
 
-```
-http://127.0.0.1:5000
-```
+## How it works
 
----
+- `app.py` — Flask server. `/` serves the chat page; `POST /api/chat` takes
+  the conversation so far, calls the NVIDIA API with `stream=True`, and
+  relays each token back to the browser over Server-Sent Events (SSE) as
+  it arrives, so replies appear incrementally instead of all at once.
+- `templates/index.html` / `static/style.css` / `static/script.js` — the
+  chat UI. It keeps the full conversation in memory client-side (`history`
+  array) and resends it with each new message, since the API itself is
+  stateless.
 
-## 📂 Project Structure
+## Deploying it for real
 
-```
-nvdiachatbot
-│
-├── static/
-├── templates/
-├── app.py
-├── requirements.txt
-├── .env.example
-└── README.md
-```
+Running `python app.py` is fine for local testing, but Flask's dev server
+isn't meant for production traffic. To put this on the internet:
 
----
+1. Run it behind a production WSGI server, e.g. `gunicorn -w 2 -b 0.0.0.0:8000 app:app`.
+2. Put it behind a reverse proxy (nginx, Caddy, or your host's load balancer)
+   for HTTPS.
+3. Set `NVIDIA_API_KEY` as a secret/environment variable on your host
+   (Render, Railway, Fly.io, a VPS, etc.) — never in the code.
+4. Consider adding rate limiting per visitor (e.g. `flask-limiter`) so one
+   user can't run up your NVIDIA usage.
 
-## 🎯 Purpose
+## Customizing
 
-This project was created to:
-
-- Learn AI integration using NVIDIA Nemotron
-- Practice Flask backend development
-- Build a modern chatbot interface
-- Serve as a personal portfolio project
-
----
-
-## ⚠️ Disclaimer
-
-AI-generated responses may occasionally be inaccurate or incomplete. Always verify important information before relying on it for academic, medical, financial, legal, or professional purposes.
-
----
-
-## 📌 Future Improvements
-
-- Chat history
-- User authentication
-- Multiple AI models
-- Image generation
-- Voice input and output
-- File uploads
-- Better UI animations
-- Conversation export
-
----
-
-## 🤝 Contributing
-
-Contributions, bug reports, and feature requests are welcome. Feel free to open an Issue or submit a Pull Request.
-
----
-
-## 📧 Contact
-
-**Gab**
-
-Email: **gabpogi392@gmail.com**
-
-If you have any questions, suggestions, or feedback, feel free to reach out.
-
----
-
-## ⭐ Support
-
-If you found this project useful, consider giving it a **Star** on GitHub. Your support is greatly appreciated!
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
+- Change the system prompt or model in `app.py` (`SYSTEM_PROMPT`, `MODEL`).
+- The UI's color tokens are CSS variables at the top of `static/style.css`
+  if you want to reskin it.
